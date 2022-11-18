@@ -1,0 +1,42 @@
+{
+  "name": "strapi-icon-picker",
+  "version": "0.0.0",
+  "description": "A Strapi plugin that adds a custom field with an icon selector",
+  "strapi": {
+    "name": "strapi-icon-picker",
+    "description": "A custom field that lets you select an icon",
+    "kind": "plugin",
+    "displayName": "Icon Picker"
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-window": "^1.8.8",
+    "styled-components": "^5.3.6",
+    "styled-icons": "^10.46.0"
+  },
+  "devDependencies": {
+    "typescript": "4.6.3"
+  },
+  "peerDependencies": {
+    "@strapi/strapi": "^4.5.0"
+  },
+  "author": {
+    "name": "A Strapi developer"
+  },
+  "maintainers": [
+    {
+      "name": "A Strapi developer"
+    }
+  ],
+  "engines": {
+    "node": ">=14.19.1 <=18.x.x",
+    "npm": ">=6.0.0"
+  },
+  "scripts": {
+    "develop": "tsc -w",
+    "build": "tsc"
+  },
+  "license": "MIT"
+}
