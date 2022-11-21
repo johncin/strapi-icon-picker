@@ -449,6 +449,7 @@ const IconPicker = ({
   error,
   description,
   required,
+  attribute,
 }) => {
   const { formatMessage } = useIntl();
   const styleUppercase = { textTransform: 'uppercase' };
@@ -462,6 +463,26 @@ const IconPicker = ({
       setShowIconPicker(false);
     }
   };
+
+  const iconPacksToUse: IconFamily['family'][] = useMemo(() => {
+    // console.log('iconPacksToUse', attribute);
+    const selectedPacks: IconFamily['family'][] = [];
+
+    Object.entries(attribute).forEach((keyValPair) => {
+      // console.log('keyVal pair', keyValPair);
+
+      if (
+        includedIconFamilies.includes(keyValPair[0] as IconFamily['family'])
+      ) {
+        if (keyValPair[1] === true) {
+          selectedPacks.push(keyValPair[0] as IconFamily['family']);
+        }
+      }
+    });
+    // console.log('returning', selectedPacks);
+
+    return selectedPacks;
+  }, [attribute]);
 
   return (
     <Stack spacing={1}>
@@ -509,17 +530,19 @@ const IconPicker = ({
           source={IconPickerButtonRef}
           spacing={4}
         >
-          <IconDisplay
-            iconFamilies={includedIconFamilies}
-            onChange={(iconValue: string, iconFamily: string) =>
-              onChange({
-                target: {
-                  name,
-                  value: { name: iconValue, family: iconFamily },
-                },
-              })
-            }
-          />
+          {iconPacksToUse && (
+            <IconDisplay
+              iconFamilies={iconPacksToUse}
+              onChange={(iconValue: string, iconFamily: string) =>
+                onChange({
+                  target: {
+                    name,
+                    value: { name: iconValue, family: iconFamily },
+                  },
+                })
+              }
+            />
+          )}
         </IconPickerPopover>
       )}
     </Stack>
@@ -552,6 +575,7 @@ IconPicker.propTypes = {
     name: PropTypes.string.isRequired,
     family: PropTypes.string.isRequired,
   }),
+  attribute: PropTypes.object,
 };
 
 export default IconPicker;
