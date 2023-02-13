@@ -119,6 +119,8 @@ const ICON_SIZE = '32px';
 const ICON_FAMILY_OUTLINE = '#ffffffb3';
 const ICON_FAMILY_OUTLINE_SELECTED = '#69ff33b3';
 
+const styleUppercase = { textTransform: 'uppercase' };
+
 const IconPreviewContainer = styled.div`
   width: 20px;
   height: 20px;
@@ -159,7 +161,6 @@ const IconPreview = ({ icon }: { icon?: { name: string; family: string } }) => {
 };
 
 const IconPickerPopover = styled(Popover)`
-  padding: ${({ theme }) => theme.spaces[2]}; // 8
   width: ${ICON_POPOVER_WIDTH}px;
   height: ${ICON_POPOVER_HEIGHT}px;
   overflow-y: scroll;
@@ -176,14 +177,17 @@ const IconItem = styled.div`
 const IconDisplay = ({
   iconFamilies,
   onChange,
+  onBlur,
 }: {
   iconFamilies: IconFamily['family'][];
   onChange: (icon: string, family: string) => void;
+  onBlur: (e) => void;
 }) => {
   // console.log('in IconDisplay, icons', iconFamilies);
 
   const { formatMessage } = useIntl();
   const isDarkMode = useIsDarkMode();
+  const topElementRef = useRef<typeof Stack>(null);
   const [loadedIconFamilies, setLoadedIconFamilies] = useState<IconFamily[]>(
     []
   );
@@ -207,13 +211,16 @@ const IconDisplay = ({
     const visible = isVisible(family);
 
     if (typeof visible === 'undefined') {
+      // icon pack hasn't been loaded previously, create a new object for it
       const loadingIcons: IconFamily = {
         family,
         visible: true,
         icons: undefined,
       };
 
+      // add the new object, without icons, to current state, to allow it to display 'loading'
       setLoadedIconFamilies((current) => [...current, loadingIcons]);
+
       iconLoader(family).then((res) => {
         if (res) {
           setLoadedIconFamilies((current) => {
@@ -234,6 +241,7 @@ const IconDisplay = ({
         }
       });
     } else if (visible) {
+      // icon pack is visible - hide it
       setLoadedIconFamilies((current) => {
         const familyIndex = current.findIndex((item) => item.family === family);
 
@@ -243,6 +251,7 @@ const IconDisplay = ({
         return updatedArray;
       });
     } else {
+      // icon pack is hidden - show it
       setLoadedIconFamilies((current) => {
         const familyIndex = current.findIndex((item) => item.family === family);
 
@@ -254,6 +263,7 @@ const IconDisplay = ({
     }
   };
 
+  // helper fn to calculate the height an icon pack's box should be
   function calcIconBoxHeight(numberOfRows: number) {
     if (numberOfRows * ICON_GROUP_ROW_HEIGHT < ICON_GROUP_HEIGHT) {
       return numberOfRows * ICON_GROUP_ROW_HEIGHT;
@@ -261,12 +271,31 @@ const IconDisplay = ({
     return ICON_GROUP_HEIGHT;
   }
 
+  useEffect(() => {
+    if (topElementRef.current) {
+      // focus top popover element in order for onBlur fn to work
+      topElementRef.current.focus();
+    }
+  }, [topElementRef.current]);
+
   return (
-    <Stack spacing={2}>
+    <Stack
+      spacing={2}
+      tabIndex={0}
+      // onFocus={(e) => {
+      //   console.log('focus', e);
+      // }}
+      ref={topElementRef}
+      style={{ padding: '4px' }}
+      onBlur={(e) => {
+        // console.log('blur', e);
+        onBlur(e);
+      }}
+    >
       <div>
         <Typography variant="pi" fontWeight="bold">
           {formatMessage({
-            id: getTrad('strapi-icon-picker.display.label'),
+            id: getTrad('icon-picker.display.label'),
             defaultMessage: 'Icon families',
           })}
         </Typography>
@@ -294,7 +323,7 @@ const IconDisplay = ({
               >
                 <Typography>
                   {formatMessage({
-                    id: getTrad(`strapi-icon-picker.iconFamily.${family}`),
+                    id: getTrad(`icon-picker.iconFamily.${family}`),
                     defaultMessage: family,
                   })}
                 </Typography>
@@ -309,12 +338,12 @@ const IconDisplay = ({
         <div style={{ width: '100%' }}>
           <TextInput
             label={formatMessage({
-              id: getTrad('strapi-icon-picker.search.label'),
+              id: getTrad('icon-picker.search.label'),
               defaultMessage: 'Icon search',
             })}
             name="Icon picker search"
             placeholder={formatMessage({
-              id: getTrad('strapi-icon-picker.search.placeholder'),
+              id: getTrad('icon-picker.search.placeholder'),
               defaultMessage: 'Search here...',
             })}
             onChange={(e) => {
@@ -392,7 +421,7 @@ const IconDisplay = ({
             <Flex marginBottom={2}>
               <Typography variant="pi" fontWeight="bold">
                 {formatMessage({
-                  id: getTrad(`strapi-icon-picker.iconFamily.${family.family}`),
+                  id: getTrad(`icon-picker.iconFamily.${family.family}`),
                   defaultMessage: family.family,
                 })}
                 {!iconsChunked || !family.icons || family.icons.length === 0
@@ -443,23 +472,31 @@ const IconPickerToggle = styled(BaseButton)`
 const IconPicker = ({
   name,
   onChange,
-  value,
+  value: valueString,
   intlLabel,
+  labelAction,
   disabled,
   error,
   description,
   required,
   attribute,
 }) => {
+  const value = JSON.parse(valueString);
   const { formatMessage } = useIntl();
-  const styleUppercase = { textTransform: 'uppercase' };
+  // console.log('IconPicker');
+  // console.log('value', value);
+  // console.log('attribute', attribute);
+
   const [showIconPicker, setShowIconPicker] = useState(false);
-  const IconPickerButtonRef = useRef();
+  const IconPickerButtonRef = useRef(null);
 
   const handleBlur = (e) => {
-    e.preventDefault();
+    // console.log('handleBlur', e);
+    // console.log('IconPickerButtonRef.current', IconPickerButtonRef.current);
+    // console.log('target', e.target);
+    // console.log('relatedtarget', e.relatedTarget);
 
-    if (!e.currentTarget.contains(e.relatedTarget)) {
+    if (IconPickerButtonRef.current) {
       setShowIconPicker(false);
     }
   };
@@ -468,7 +505,7 @@ const IconPicker = ({
     // console.log('iconPacksToUse', attribute);
     const selectedPacks: IconFamily['family'][] = [];
 
-    Object.entries(attribute).forEach((keyValPair) => {
+    Object.entries(attribute.options).forEach((keyValPair) => {
       // console.log('keyVal pair', keyValPair);
 
       if (
@@ -485,67 +522,83 @@ const IconPicker = ({
   }, [attribute]);
 
   return (
-    <Stack spacing={1}>
-      <Typography variant="pi" fontWeight="bold">
-        {formatMessage(intlLabel)}
-      </Typography>
-      {required && (
-        <Typography variant="pi" fontWeight="bold" textColor="danger600">
-          *
-        </Typography>
-      )}
-      <IconPickerToggle
-        ref={IconPickerButtonRef}
-        aria-label={formatMessage({
-          id: getTrad('strapi-icon-picker.toggle.aria-label'),
-          defaultMessage: 'Icon picker toggle',
-        })}
-        aria-controls="icon-picker-value"
-        aria-haspopup="dialog"
-        aria-expanded={showIconPicker}
-        aria-disabled={disabled}
-        disabled={disabled}
-        onClick={() => setShowIconPicker(!showIconPicker)}
-      >
-        <Flex>
-          <IconPreview icon={value} />
-          <Typography
-            style={styleUppercase}
-            textColor={value ? null : 'neutral600'}
-            variant="omega"
-          >
-            {value?.family &&
-              formatMessage({
-                id: getTrad(`strapi-icon-picker.iconFamily.${value.family}`),
-                defaultMessage: value.family,
-              })}
-            {value && ' - '}
-            {value?.name}
+    <Field
+      name={name}
+      id={name}
+      // GenericInput calls formatMessage and returns a string for the error
+      error={error}
+      hint={description && formatMessage(description)}
+      required={required}
+    >
+      <Stack spacing={1} style={{ padding: 0 }}>
+        <FieldLabel action={labelAction}>{formatMessage(intlLabel)}</FieldLabel>
+        {required && (
+          <Typography variant="pi" fontWeight="bold" textColor="danger600">
+            *
           </Typography>
-        </Flex>
-      </IconPickerToggle>
-      {showIconPicker && (
-        <IconPickerPopover
-          role="dialog"
-          source={IconPickerButtonRef}
-          spacing={4}
+        )}
+        <IconPickerToggle
+          ref={IconPickerButtonRef}
+          aria-label={formatMessage({
+            id: getTrad('icon-picker.toggle.aria-label'),
+            defaultMessage: 'Icon picker toggle',
+          })}
+          aria-controls="icon-picker-value"
+          aria-haspopup="dialog"
+          aria-expanded={showIconPicker}
+          aria-disabled={disabled}
+          disabled={disabled}
+          onClick={(e) => {
+            // console.log('clicked toggle', e);
+
+            setShowIconPicker(!showIconPicker);
+          }}
         >
-          {iconPacksToUse && (
-            <IconDisplay
-              iconFamilies={iconPacksToUse}
-              onChange={(iconValue: string, iconFamily: string) =>
-                onChange({
-                  target: {
-                    name,
-                    value: { name: iconValue, family: iconFamily },
-                  },
-                })
-              }
-            />
-          )}
-        </IconPickerPopover>
-      )}
-    </Stack>
+          <Flex>
+            <IconPreview icon={value} />
+            <Typography
+              style={styleUppercase}
+              textColor={value ? null : 'neutral600'}
+              variant="omega"
+            >
+              {value?.family &&
+                formatMessage({
+                  id: getTrad(`icon-picker.iconFamily.${value.family}`),
+                  defaultMessage: value.family,
+                })}
+              {value && ' - '}
+              {value?.name}
+            </Typography>
+          </Flex>
+        </IconPickerToggle>
+        {showIconPicker && (
+          <IconPickerPopover
+            id="IconPopover"
+            role="dialog"
+            source={IconPickerButtonRef}
+            spacing={4}
+          >
+            {iconPacksToUse && (
+              <IconDisplay
+                iconFamilies={iconPacksToUse}
+                onChange={(iconValue: string, iconFamily: string) =>
+                  onChange({
+                    target: {
+                      name,
+                      value: JSON.stringify({
+                        name: iconValue,
+                        family: iconFamily,
+                      }),
+                    },
+                  })
+                }
+                onBlur={handleBlur}
+              />
+            )}
+          </IconPickerPopover>
+        )}
+      </Stack>
+    </Field>
   );
 };
 
@@ -553,6 +606,7 @@ IconPicker.defaultProps = {
   description: null,
   disabled: false,
   error: null,
+  labelAction: null,
   required: false,
   value: null,
 };
@@ -568,13 +622,11 @@ IconPicker.propTypes = {
     id: PropTypes.string,
     defaultMessage: PropTypes.string,
   }),
+  labelAction: PropTypes.object,
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
   required: PropTypes.bool,
-  value: PropTypes.shape({
-    name: PropTypes.string.isRequired,
-    family: PropTypes.string.isRequired,
-  }),
+  value: PropTypes.string,
   attribute: PropTypes.object,
 };
 

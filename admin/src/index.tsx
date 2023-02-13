@@ -53,30 +53,17 @@ export default {
     const pluginDescription =
       pluginPkg.strapi.description || pluginPkg.description;
 
-    const plugin = {
-      description: pluginDescription,
-      intlLabel: {
-        id: pluginId,
-        defaultMessage: pluginId,
-      },
-      id: pluginId,
-      initializer: Initializer,
-      isReady: true,
-      name,
-    };
-
-    app.registerPlugin(plugin);
-
     app.customFields.register({
       name,
       pluginId,
       type: 'json',
+      icon: PluginIcon,
       intlLabel: {
-        id: getTrad('strapi-icon-picker.label'),
+        id: getTrad('icon-picker.label'),
         defaultMessage: pluginId,
       },
       intlDescription: {
-        id: getTrad('strapi-icon-picker.description'),
+        id: getTrad('icon-picker.description'),
         defaultMessage: pluginDescription,
       },
       components: {
@@ -89,22 +76,42 @@ export default {
         advanced: [
           {
             sectionTitle: {
-              id: getTrad(
-                'strapi-icon-picker.options.advanced.packages.list.title'
-              ),
+              id: 'global.settings',
+              defaultMessage: 'Settings',
+            },
+            items: [
+              {
+                name: 'options.advanced.requiredField',
+                type: 'checkbox',
+                description: {
+                  id: getTrad(
+                    'icon-picker.options.advanced.requiredField.description'
+                  ),
+                  defaultMessage:
+                    "You won't be able to create an entry if this field is empty",
+                },
+                intlLabel: {
+                  id: getTrad('icon-picker.options.advanced.requiredField'),
+                  defaultMessage: 'Required field',
+                },
+              },
+            ],
+          },
+          {
+            sectionTitle: {
+              id: getTrad('icon-picker.options.advanced.packages.list.title'),
               defaultMessage: 'Icon packages to use',
             },
             items: iconPacks.map((pack) => {
               return {
-                name: pack,
+                name: `options.${pack}`,
                 type: 'checkbox',
-                value: 'checked',
-                withDefaultValue: true,
-                checked: true,
+                defaultValue: true,
                 intlLabel: {
-                  id: getTrad(`strapi-icon-picker.iconFamily.${pack}`),
+                  id: getTrad(`icon-picker.iconFamily.${pack}`),
                   defaultMessage: pack,
                 },
+                options: [],
               };
             }),
           },
